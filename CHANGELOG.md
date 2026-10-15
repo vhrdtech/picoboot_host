@@ -1,6 +1,13 @@
-# ww_picoboot changelog
+# picoboot_host changelog
 
 ## Unreleased
+
+### ⚠️ Breaking
+
+- Extracted from [wire_weaver](https://github.com/vhrdtech/wire_weaver) into its own repo: the crate is renamed
+  from `ww_picoboot` to `picoboot_host`. No code changes otherwise; wire_weaver depends on it as a path (and, once
+  published, git/registry) dependency aliased back to `ww_picoboot` in its own `Cargo.toml`, so its own source
+  didn't need to change.
 
 ### 🚀 Features
 

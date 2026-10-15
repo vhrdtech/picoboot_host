@@ -1,11 +1,11 @@
 [package]
-name = "ww_picoboot"
+name = "picoboot_host"
 version = "0.1.0"
-authors.workspace = true
+authors = ["Roman Isaikin <romix.lab@gmail.com>"]
 description = "PICOBOOT host for the RP2350 / RP2040 boot ROM in Rust on nusb: flash UF2 or binary images, query, reboot"
-edition.workspace = true
-license.workspace = true
-repository.workspace = true
+edition = "2024"
+license = "MIT"
+repository = "https://github.com/vhrdtech/picoboot_host"
 keywords = ["rp2350", "picoboot", "bootsel", "usb", "picotool"]
 
 [features]
@@ -16,9 +16,9 @@ usb = ["dep:nusb", "dep:tokio"]
 sim = []
 
 [dependencies]
-nusb = { workspace = true, optional = true }
-thiserror.workspace = true
-tokio = { workspace = true, features = ["time"], optional = true }
+nusb = { version = "0.2", features = ["tokio"], optional = true }
+thiserror = "2"
+tokio = { version = "1", features = ["time"], optional = true }
 
 [dev-dependencies]
-tokio = { workspace = true, features = ["macros", "rt"] }
+tokio = { version = "1", features = ["macros", "rt"] }
