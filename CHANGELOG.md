@@ -5,7 +5,7 @@
 ### ⚠️ Breaking
 
 - Extracted from [wire_weaver](https://github.com/vhrdtech/wire_weaver) into its own repo: the crate is renamed
-  from `ww_picoboot` to `picoboot_host`. No code changes otherwise; wire_weaver depends on it as a path (and, once
+  from `ww_picoboot` to `picoboot_host`. No code changes otherwise; WireWeaver depends on it as a path (and, once
   published, git/registry) dependency aliased back to `ww_picoboot` in its own `Cargo.toml`, so its own source
   didn't need to change.
 
@@ -16,3 +16,7 @@
   `flash()` (erase the touched sectors, write, verify, with `Progress`). `Image` from UF2 files (family filter,
   RP2350-E10 dummy block skipped) or raw binaries. `usb::list` / `usb::open` find a BOOTSEL device by its serial
   number (the chip id). `sim::SimRp2350` (feature `sim`): a simulated RP2350 boot ROM at the transfer level for tests.
+
+### 📝 Docs
+
+- Product names written WireWeaver and ShrinkWrap in prose (P2534).
