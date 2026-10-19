@@ -2,6 +2,8 @@
 
 ## [Unreleased]
 
+## [0.1.0] - 2026-10-19
+
 ### ⚠️ Breaking
 
 - Extracted from [wire_weaver](https://github.com/vhrdtech/wire_weaver) into its own repo: the crate is renamed
