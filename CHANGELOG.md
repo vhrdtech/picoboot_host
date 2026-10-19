@@ -1,6 +1,6 @@
 # picoboot_host changelog
 
-## Unreleased
+## [Unreleased]
 
 ### ⚠️ Breaking
 
