@@ -23,6 +23,9 @@ pub const IF_CMD_STATUS: u8 = 0x42;
 
 /// Start of flash in the address space (XIP).
 pub const FLASH_BASE: u32 = 0x1000_0000;
+/// End of the XIP window (exclusive): SRAM starts here. The same on RP2040 and RP2350 (the RP2350 secure and
+/// non-secure flash aliases both live below it).
+pub const SRAM_BASE: u32 = 0x2000_0000;
 /// Erase unit, `FLASH_ERASE` address and size are multiples of it.
 pub const FLASH_SECTOR_SIZE: usize = 4096;
 /// Program unit, flash `WRITE` address and size are multiples of it.

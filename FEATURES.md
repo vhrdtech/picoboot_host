@@ -44,6 +44,14 @@ commit `731f83f`, CLT-21).
 - ✅ **IMG-2 Raw binary images** — `Image::from_bin(addr, data)`.
 - ✅ **IMG-3 Sector computation** — `Image::sectors()`: the touched sectors, erased (`0xFF`) bytes outside the
   image filled in, for `Picoboot::flash`'s erase/write/verify loop.
+- ✅ **IMG-4 ELF images** — `Image::from_elf(bytes)` (feature `elf`, `image.rs`): the `PT_LOAD` segments of a
+  32-bit ELF, taken by physical address (`p_paddr`, the flash load address) rather than `p_vaddr` (where a RAM-
+  resident segment runs from), so `.data` segments copied to RAM at startup land at their flash LMA. Segments with
+  no file bytes (`NOLOAD`, pure `.bss`) are skipped. A load segment with file bytes outside the flash XIP window
+  (`0x1000_0000..0x2000_0000`, same on RP2040 and RP2350) is an error; a RAM-only image isn't supported (💡 IMG-5).
+  Parsed with `object` (`read_core` + `elf`, default features off): no `-sys` crate, pure Rust.
+- 💡 **IMG-5 RAM-load images** — an ELF (or other image) meant to run from RAM, loaded and started directly rather
+  than written to flash. `Image::from_elf` currently errors on a `PT_LOAD` segment outside flash instead.
 
 ## Flashing (`FLASH`)
 
@@ -64,7 +72,16 @@ commit `731f83f`, CLT-21).
 
 - ✅ **TEST-1 Simulated boot ROM** (`sim.rs`, feature `sim`) — `SimRp2350`: command/data/status phases, stalls on
   refused commands, NOR-flash write semantics (programming only clears bits), `fail_next` to inject a refusal.
-  Covers flash+verify+reboot, chip id, refusal recovery, a write without erase failing verify.
+  Covers flash+verify+reboot, chip id, refusal recovery, a write without erase failing verify, flashing an ELF
+  image (feature `elf`).
+- 🐛 **TEST-2 `just test` / plain `cargo nextest run` don't exercise `sim`- or `elf`-gated tests** — `sim` and
+  `elf` aren't in `default` (`Cargo.toml`), so the test binary built without `--features` doesn't even compile
+  `sim.rs`'s or the `elf`-gated tests in `image.rs`; `cargo clippy --all-targets` (no features) misses them the
+  same way. Trigger: run `just test` or `just lint` as documented in AGENTS.md's Commands section — both silently
+  skip `sim.rs` entirely. Not fixed here (out of scope for IMG-4): verified manually with
+  `cargo nextest run --features usb,sim,elf` and `cargo clippy --all-targets --features usb,sim,elf -- -D warnings`
+  instead. A fix would add `--all-features` (or an explicit feature list) to the `test` and `lint` recipes in
+  `justfile`, and to the commands listed in `AGENTS.md`.
 
 ## Dropped and superseded
 

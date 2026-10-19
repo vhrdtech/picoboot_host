@@ -1,6 +1,8 @@
 //! Firmware images to write: UF2 files and raw binaries, as segments of flash addresses and bytes.
 
 use crate::Error;
+#[cfg(feature = "elf")]
+use crate::proto::SRAM_BASE;
 use crate::proto::{FLASH_BASE, FLASH_PAGE_SIZE, FLASH_SECTOR_SIZE};
 
 const UF2_BLOCK_SIZE: usize = 512;
@@ -95,6 +97,56 @@ impl Image {
             return Err(Error::Image(format!(
                 "UF2 file has no flash blocks for families {families:x?} (found {seen_families:x?})"
             )));
+        }
+        Ok(image)
+    }
+
+    /// The flash `PT_LOAD` segments of an ELF file, by physical address (`p_paddr`, the load address a segment is
+    /// placed at — as opposed to `p_vaddr`, the address it runs from, for a segment copied to RAM at startup).
+    /// Segments with no file bytes (`NOLOAD`, pure `.bss`) are skipped; a load segment with file bytes that land
+    /// outside flash is an error (a RAM-only image isn't supported yet, IMG-5).
+    #[cfg(feature = "elf")]
+    pub fn from_elf(bytes: &[u8]) -> Result<Self, Error> {
+        use object::elf::PT_LOAD;
+        use object::read::elf::{ElfFile32, ProgramHeader};
+        use object::{Endianness, FileKind};
+
+        let kind = FileKind::parse(bytes).map_err(|e| Error::Image(format!("ELF: {e}")))?;
+        if kind != FileKind::Elf32 {
+            return Err(Error::Image(format!(
+                "ELF: {kind:?} isn't supported, RP2040/RP2350 firmware is always 32-bit"
+            )));
+        }
+        let elf =
+            ElfFile32::<Endianness>::parse(bytes).map_err(|e| Error::Image(format!("ELF: {e}")))?;
+        let endian = elf.endian();
+        let mut image = Image::default();
+        for seg in elf.elf_program_headers() {
+            if seg.p_type(endian) != PT_LOAD {
+                continue;
+            }
+            let filesz = seg.p_filesz(endian);
+            if filesz == 0 {
+                continue;
+            }
+            let paddr = seg.p_paddr(endian);
+            if !(FLASH_BASE..SRAM_BASE).contains(&paddr) {
+                return Err(Error::Image(format!(
+                    "ELF: a load segment at {paddr:#010x} ({filesz} bytes) is not in flash (the XIP window is \
+                     {FLASH_BASE:#010x}..{SRAM_BASE:#010x}); a RAM-only image isn't supported"
+                )));
+            }
+            let data = seg.data(endian, bytes).map_err(|()| {
+                Error::Image(format!(
+                    "ELF: the load segment at {paddr:#010x} reaches past the end of the file"
+                ))
+            })?;
+            image.add(paddr, data)?;
+        }
+        if image.segments.is_empty() {
+            return Err(Error::Image(
+                "ELF: no PT_LOAD segment with file bytes in flash".into(),
+            ));
         }
         Ok(image)
     }
@@ -201,7 +253,7 @@ impl Image {
 const _: () = assert!(FLASH_SECTOR_SIZE.is_multiple_of(FLASH_PAGE_SIZE));
 
 #[cfg(test)]
-mod tests {
+pub(crate) mod tests {
     use super::*;
 
     /// One UF2 block, as picotool writes them.
@@ -255,6 +307,108 @@ mod tests {
 
         let err = Image::from_uf2(&file, &[family::RP2040]).unwrap_err();
         assert!(err.to_string().contains("e48bff59"), "{err}");
+    }
+
+    /// A `PT_LOAD` program header to build into a test ELF file with [elf32].
+    #[cfg(feature = "elf")]
+    pub(crate) struct ElfSeg {
+        pub paddr: u32,
+        pub vaddr: u32,
+        pub data: &'static [u8],
+        /// Memory size; `> data.len()` for a segment with a zero-filled tail (e.g. `.data` immediately followed by
+        /// `.bss` in the same `PT_LOAD`). `0` with empty `data` makes a `NOLOAD`-style segment (pure `.bss`).
+        pub memsz: u32,
+    }
+
+    /// A minimal 32-bit little-endian ELF file (as `arm-none-eabi-gcc`/`rust-lld` produce) with one `PT_LOAD`
+    /// segment per `seg`, back to back in the file.
+    #[cfg(feature = "elf")]
+    pub(crate) fn elf32(segs: &[ElfSeg]) -> Vec<u8> {
+        const EHDR_LEN: u32 = 52;
+        const PHDR_LEN: u32 = 32;
+        let mut bytes = vec![0u8; (EHDR_LEN + PHDR_LEN * segs.len() as u32) as usize];
+        bytes[0..4].copy_from_slice(&[0x7f, b'E', b'L', b'F']);
+        bytes[4] = 1; // ELFCLASS32
+        bytes[5] = 1; // ELFDATA2LSB
+        bytes[6] = 1; // EV_CURRENT
+        bytes[16..18].copy_from_slice(&2u16.to_le_bytes()); // e_type = ET_EXEC
+        bytes[18..20].copy_from_slice(&40u16.to_le_bytes()); // e_machine = EM_ARM
+        bytes[20..24].copy_from_slice(&1u32.to_le_bytes()); // e_version
+        bytes[28..32].copy_from_slice(&EHDR_LEN.to_le_bytes()); // e_phoff
+        bytes[40..42].copy_from_slice(&(EHDR_LEN as u16).to_le_bytes()); // e_ehsize
+        bytes[42..44].copy_from_slice(&(PHDR_LEN as u16).to_le_bytes()); // e_phentsize
+        bytes[44..46].copy_from_slice(&(segs.len() as u16).to_le_bytes()); // e_phnum
+
+        let mut data_off = bytes.len() as u32;
+        for (i, seg) in segs.iter().enumerate() {
+            let p = (EHDR_LEN + PHDR_LEN * i as u32) as usize;
+            bytes[p..p + 4].copy_from_slice(&1u32.to_le_bytes()); // p_type = PT_LOAD
+            bytes[p + 4..p + 8].copy_from_slice(&data_off.to_le_bytes()); // p_offset
+            bytes[p + 8..p + 12].copy_from_slice(&seg.vaddr.to_le_bytes());
+            bytes[p + 12..p + 16].copy_from_slice(&seg.paddr.to_le_bytes());
+            bytes[p + 16..p + 20].copy_from_slice(&(seg.data.len() as u32).to_le_bytes()); // p_filesz
+            bytes[p + 20..p + 24].copy_from_slice(&seg.memsz.to_le_bytes());
+            data_off += seg.data.len() as u32;
+        }
+        for seg in segs {
+            bytes.extend_from_slice(seg.data);
+        }
+        bytes
+    }
+
+    #[cfg(feature = "elf")]
+    #[test]
+    fn elf_takes_flash_segments_by_physical_address() {
+        let file = elf32(&[
+            ElfSeg {
+                paddr: FLASH_BASE,
+                vaddr: FLASH_BASE,
+                data: &[1; 16],
+                memsz: 16,
+            },
+            ElfSeg {
+                // .data: runs from RAM, loaded from flash right after .text
+                paddr: FLASH_BASE + 16,
+                vaddr: 0x2000_0000,
+                data: &[2; 8],
+                memsz: 8,
+            },
+            ElfSeg {
+                // .bss: RAM only, no file bytes, skipped regardless of its (unset) physical address
+                paddr: 0,
+                vaddr: 0x2000_0008,
+                data: &[],
+                memsz: 100,
+            },
+        ]);
+        let image = Image::from_elf(&file).unwrap();
+        assert_eq!(image.segments.len(), 1);
+        assert_eq!(image.segments[0].addr, FLASH_BASE);
+        assert_eq!(&image.segments[0].data[..16], &[1; 16]);
+        assert_eq!(&image.segments[0].data[16..], &[2; 8]);
+    }
+
+    #[cfg(feature = "elf")]
+    #[test]
+    fn elf_ram_only_load_segment_is_an_error() {
+        let file = elf32(&[ElfSeg {
+            paddr: 0x2000_0000,
+            vaddr: 0x2000_0000,
+            data: &[1; 16],
+            memsz: 16,
+        }]);
+        let err = Image::from_elf(&file).unwrap_err();
+        assert!(err.to_string().contains("not in flash"), "{err}");
+    }
+
+    #[cfg(feature = "elf")]
+    #[test]
+    fn elf64_is_rejected() {
+        let mut magic = vec![0u8; 16];
+        magic[0..4].copy_from_slice(&[0x7f, b'E', b'L', b'F']);
+        magic[4] = 2; // ELFCLASS64
+        let err = Image::from_elf(&magic).unwrap_err();
+        assert!(err.to_string().contains("Elf64"), "{err}");
     }
 
     #[test]

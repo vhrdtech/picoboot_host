@@ -408,6 +408,40 @@ mod tests {
         );
     }
 
+    #[cfg(feature = "elf")]
+    #[tokio::test]
+    async fn flash_an_elf_image() {
+        use crate::image::tests::{ElfSeg, elf32};
+
+        let (sim, mut pb) = connect().await;
+        let file = elf32(&[
+            ElfSeg {
+                paddr: FLASH_BASE,
+                vaddr: FLASH_BASE,
+                data: &[0xAA; 16],
+                memsz: 16,
+            },
+            ElfSeg {
+                // .data: runs from RAM, loaded from flash right after .text
+                paddr: FLASH_BASE + 16,
+                vaddr: 0x2000_0000,
+                data: &[0xBB; 8],
+                memsz: 8,
+            },
+            ElfSeg {
+                // .bss: RAM only, no file bytes, must not reach flash
+                paddr: 0,
+                vaddr: 0x2000_0008,
+                data: &[],
+                memsz: 100,
+            },
+        ]);
+        let image = Image::from_elf(&file).unwrap();
+        pb.flash(&image, &mut ()).await.unwrap();
+        assert_eq!(sim.flash(FLASH_BASE, 16), vec![0xAA; 16]);
+        assert_eq!(sim.flash(FLASH_BASE + 16, 8), vec![0xBB; 8]);
+    }
+
     #[tokio::test]
     async fn chip_id_matches_serial() {
         let (sim, mut pb) = connect().await;

@@ -31,8 +31,9 @@ pb.reboot2(picoboot_host::proto::Reboot2::Normal, picoboot_host::proto::REBOOT_D
   phases, stalls, `IF_RESET` / `IF_CMD_STATUS`), so the whole flash/verify/reboot sequence can be tested without
   hardware.
 - [`Image`] holds what to write, from a UF2 file (family filter, the RP2350-E10 dummy block skipped, adjacent
-  blocks merged into segments) or a raw binary at an address; [`Picoboot::flash`] erases exactly the touched
-  sectors, writes page by page, reads back and verifies, with a `Progress` callback for a progress bar.
+  blocks merged into segments), an ELF file (feature `elf`; `PT_LOAD` segments by physical/flash address, `.bss`
+  skipped), or a raw binary at an address; [`Picoboot::flash`] erases exactly the touched sectors, writes page by
+  page, reads back and verifies, with a `Progress` callback for a progress bar.
 - [`usb::list`] / [`usb::find`] / [`usb::open`] / [`usb::open_by_serial`] find and open a BOOTSEL device by its USB
   serial number — the chip id, the same a firmware can put into its own serial number so a host finds the same unit
   again after it reboots into BOOTSEL and back.
@@ -46,6 +47,7 @@ pb.reboot2(picoboot_host::proto::Reboot2::Normal, picoboot_host::proto::REBOOT_D
 
 - `usb` (default): real devices through `nusb`, no `libusb`.
 - `sim`: [`sim::SimRp2350`], a simulated boot ROM for tests; no `usb` or `tokio` needed.
+- `elf`: `Image::from_elf`, on `object` (no `-sys` crate, pure Rust).
 
 ## Not (yet) covered
 
