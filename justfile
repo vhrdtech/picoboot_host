@@ -4,14 +4,14 @@
 default:
     @just --list
 
-# Run the test suite
+# Run the test suite, all features so sim- and elf-gated tests run too
 test:
-    cargo nextest run --no-fail-fast
+    cargo nextest run --no-fail-fast --all-features
 
 # Format and lint checks (what CI runs)
 lint:
     cargo fmt --check
-    cargo clippy --all-targets -- -D warnings
+    cargo clippy --all-targets --all-features -- -D warnings
 
 # picoboot_host is a library crate, no binary to install on this PC
 install:

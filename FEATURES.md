@@ -74,14 +74,10 @@ commit `731f83f`, CLT-21).
   refused commands, NOR-flash write semantics (programming only clears bits), `fail_next` to inject a refusal.
   Covers flash+verify+reboot, chip id, refusal recovery, a write without erase failing verify, flashing an ELF
   image (feature `elf`).
-- 🐛 **TEST-2 `just test` / plain `cargo nextest run` don't exercise `sim`- or `elf`-gated tests** — `sim` and
-  `elf` aren't in `default` (`Cargo.toml`), so the test binary built without `--features` doesn't even compile
-  `sim.rs`'s or the `elf`-gated tests in `image.rs`; `cargo clippy --all-targets` (no features) misses them the
-  same way. Trigger: run `just test` or `just lint` as documented in AGENTS.md's Commands section — both silently
-  skip `sim.rs` entirely. Not fixed here (out of scope for IMG-4): verified manually with
-  `cargo nextest run --features usb,sim,elf` and `cargo clippy --all-targets --features usb,sim,elf -- -D warnings`
-  instead. A fix would add `--all-features` (or an explicit feature list) to the `test` and `lint` recipes in
-  `justfile`, and to the commands listed in `AGENTS.md`.
+- ✅ **TEST-2 `just test` / `just lint` exercise every feature** — `sim` and `elf` aren't in `default`
+  (`Cargo.toml`), so without `--all-features` the test binary doesn't even compile `sim.rs` or the `elf`-gated
+  tests in `image.rs`, and `cargo clippy --all-targets` misses them the same way. `justfile`'s `test` and `lint`
+  recipes, and the commands in `AGENTS.md`, now pass `--all-features`.
 
 ## Dropped and superseded
 

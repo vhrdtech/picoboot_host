@@ -41,12 +41,15 @@ against.
 ## Commands
 
 ```sh
-cargo test              # or: cargo nextest run
-cargo clippy --all-targets -- -D warnings
+cargo test --all-features              # or: cargo nextest run --all-features
+cargo clippy --all-targets --all-features -- -D warnings
 cargo fmt --check
 just test               # same, via the justfile
 just lint
 ```
+
+`--all-features` matters: `sim` and `elf` aren't in `default`, so without it the `sim`-gated and `elf`-gated
+tests (and their lint) are silently skipped.
 
 Commit messages use Conventional Commits with a scope (`feat(image): ...`, `fix(usb): ...`): a short imperative
 summary line, a blank line, then a body explaining what changed and why.

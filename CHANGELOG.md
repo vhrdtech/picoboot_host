@@ -16,9 +16,6 @@
   `flash()` (erase the touched sectors, write, verify, with `Progress`). `Image` from UF2 files (family filter,
   RP2350-E10 dummy block skipped) or raw binaries. `usb::list` / `usb::open` find a BOOTSEL device by its serial
   number (the chip id). `sim::SimRp2350` (feature `sim`): a simulated RP2350 boot ROM at the transfer level for tests.
-
-### 🚀 Features
-
 - `Image::from_elf` (feature `elf`, IMG-4): flash an ELF firmware straight from its `PT_LOAD` segments, taken by
   physical address (LMA); segments with no file bytes (`.bss`) are skipped, a load segment outside the flash XIP
   window is a clear error. Pure-Rust parsing on `object` (no `-sys` crates).
