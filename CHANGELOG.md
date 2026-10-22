@@ -2,6 +2,8 @@
 
 ## [Unreleased]
 
+## [0.1.1] - 2026-10-22
+
 ### 🔧 Chore
 
 - `just deploy` now refuses to run with local changes present, and runs `just install` (the library build check)

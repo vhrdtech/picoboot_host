@@ -1,6 +1,6 @@
 [package]
 name = "picoboot_host"
-version = "0.1.0"
+version = "0.1.1"
 authors = ["Roman Isaikin <romix.lab@gmail.com>"]
 description = "PICOBOOT host for the RP2350 / RP2040 boot ROM in Rust on nusb: flash UF2 or binary images, query, reboot"
 edition = "2024"
