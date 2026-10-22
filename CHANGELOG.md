@@ -2,6 +2,11 @@
 
 ## [Unreleased]
 
+### 🔧 Chore
+
+- `just deploy` now refuses to run with local changes present, and runs `just install` (the library build check)
+  after pulling, instead of only pulling (install-recipes-sweep, ops#22oct-1632).
+
 ## [0.1.0] - 2026-10-19
 
 ### ⚠️ Breaking

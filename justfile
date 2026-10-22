@@ -17,6 +17,8 @@ lint:
 install:
     cargo build --release
 
-# Library crate, nothing runs on this PC: staying current is a plain pull
+# Library crate, nothing runs on this PC: pull current main and check it still builds
 deploy:
+    test -z "$(git status --porcelain)" || (echo "local changes present, refusing to deploy" >&2 && exit 1)
     git pull --ff-only
+    just install
