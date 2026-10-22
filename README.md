@@ -5,7 +5,7 @@ PICOBOOT host for the Raspberry Pi RP2350 (and RP2040) boot ROM in BOOTSEL mode,
 library, so a host can update a device it rebooted into BOOTSEL without a button press or a separate tool.
 
 Extracted from [wire_weaver](https://github.com/vhrdtech/wire_weaver) (CLT-21), where it still powers
-`wire_weaver_client::follow::rp2_update()` and `ww bootsel`, but is otherwise independent: no WireWeaver
+`wire_weaver_client::follow::rp2_update()` and `ww dfu rp`, but is otherwise independent: no WireWeaver
 dependency, usable from any Rust project that talks to an RP2040 / RP2350 boot ROM.
 
 ```rust,no_run

@@ -5,7 +5,7 @@ Guidance for AI agents and contributors. Read this before changing code.
 picoboot_host is a PICOBOOT host for the Raspberry Pi RP2350 (and RP2040) boot ROM in BOOTSEL mode: flash erase /
 write / verify, reboot, chip id, in Rust on `nusb` (no `libusb`). It was extracted from
 [wire_weaver](https://github.com/vhrdtech/wire_weaver) (CLT-21, where it still powers
-`wire_weaver_client::follow::rp2_update()` and `ww bootsel`) and has no WireWeaver dependency of its own.
+`wire_weaver_client::follow::rp2_update()` and `ww dfu rp`) and has no WireWeaver dependency of its own.
 
 ## FEATURES.md is the source of truth
 
