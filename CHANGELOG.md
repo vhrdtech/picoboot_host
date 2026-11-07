@@ -2,6 +2,8 @@
 
 ## [Unreleased]
 
+## [0.1.2] - 2026-11-07
+
 ### 📝 Docs
 
 - Internal references removed.
